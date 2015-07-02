@@ -172,7 +172,7 @@ class Nexcessnet_Turpentine_Model_Observer_Esi extends Varien_Event_Observer {
             $responseBody = $response->getBody();
             $responseBody = str_replace( '{{form_key_esi_placeholder}}',
                 $esiHelper->buildEsiIncludeFragment(
-                    $esiHelper->getFormKeyEsiUrl() ),
+                    $this->_stripBaseUrl($esiHelper->getFormKeyEsiUrl()) ),
                 $responseBody );
             $response->setBody( $responseBody );
         }
@@ -256,7 +256,7 @@ class Nexcessnet_Turpentine_Model_Observer_Esi extends Varien_Event_Observer {
                 );
             }
 
-            $esiUrl = Mage::getUrl( 'turpentine/esi/getBlock', $urlOptions );
+            $esiUrl = $this->_stripBaseUrl(Mage::getUrl( 'turpentine/esi/getBlock', $urlOptions ));
             $blockObject->setEsiUrl( $esiUrl );
             // avoid caching the ESI template output to prevent the double-esi-
             // include/"ESI processing not enabled" bug
@@ -490,5 +490,18 @@ class Nexcessnet_Turpentine_Model_Observer_Esi extends Varien_Event_Observer {
      */
     protected function _checkIsEsiUrl( $url ) {
         return !$this->_checkIsNotEsiUrl( $url );
+    }
+
+    /**
+     * Remove secure base url from full url if it's there 
+     * (e.g. transform 'https://site.com/turpentine/esi/getBlock/...' -> '/turpentine/esi/getBlock/...'). 
+     * It's used to fix wrong ESI URL formation in full site SSL setting.
+     *
+     * @param  string $url
+     * @return string
+     */
+    protected function _stripBaseUrl ($url) {
+        $res = preg_replace("~^".Mage::getStoreConfig(Mage_Core_Model_Store::XML_PATH_SECURE_BASE_URL)."~", "/", $url);
+        return $res?$res:$url;
     }
 }
